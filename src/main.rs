@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         headers.insert("Upgrade", "websocket");
         headers.insert("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36");
     
-    let provider = Provider::new(token.to_string(), headers, "wss://ws-api.oneme.ru/websocket".to_string()).await?;
+    let provider = Provider::new(headers, "wss://ws-api.oneme.ru/websocket".to_string()).await?;
 
     // let request = Request::builder()
     //     .uri("wss://ws-api.oneme.ru/websocket")
@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Send UserAgent(max be like)
-    provider.send_data(user_agent_data, 6).await?.send_data(auth_data, 19).await?.handle_messages().await;
+    provider.send_data(user_agent_data, 6).await?.send_data(auth_data, 19).await?.handle_messages().await?;
     
     // println!("{:#?}", response.status());
     // Message::Text("{\"ver\":11,\"cmd\":0,\"seq\":1,\"opcode\":19,\"payload\":{\"interactive\":true,\"token\":\"An_Sx6HQ9HDiosqclOvmtrXJjp39jF4tyO3OPzfHXeRLT5T2osJz70TmnCCvE7jadYAwTD0nSzEmQ__QlaQjlndRekx74h8d8yOcLzrS6qrQmRey7yeYU8-roYfBVgh5wzTErjWt7cLIqMfGKXpWvz8-7Obw6TyBEfrXtBJuvfHdtIk7qv90w2lIhWDIQYjfpdfkg-8LrQV-ndkJj6lwD4rgypCXdF4KGlecl0ZeNBYeap32ZxG1KABw8BmHG4r1wWrLvJ_AW0GTXhY-83Ev6GBEFEG3ngTnCzioc3GOEVPbqlBnz1XaaGmfKq1BugKgMcrKVF_4kB6O8zatRr0Iun38V1JjUSLB4chy6jW8Rg3dUTjgALgwnNK4KM3jUuIK29TDSIw7wH513RGBgV4JKLKsfV0dJKo5yR_2joWjsH2cWZgTntbPHe9c4XYvT0t6-ORwFpHiTMpHIpqlgfruntAAiEUV7g6WxjuBbrjZ-i1EMsxAkphjBdWQgg5U_MgrctbsnD7x5DiFj93fVq8BmrFfgBdfV9BKy_UiA-N1m_HChuNQhugJjMwW-NJwsACyltYWipvzkYxSfu_W9Ozt5pGKTjJTs4iyKzbRDjr-zhQ3_bDnPLc9dILdfLPGdpQtpzPduIIMLdcI72NqN7FmvU01smzp696336NQl5ET3_UBLODpEHVcCCXQBuvoWqopylH2b7M\",\"chatsCount\":40,\"chatsSync\":0,\"contactsSync\":0,\"presenceSync\":-1,\"draftsSync\":0}}".into())
