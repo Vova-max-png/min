@@ -1,0 +1,25 @@
+{
+    "headers": {
+        "Host": "ws-api.oneme.ru",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Connection": "Upgrade",
+        "Origin": "https://web.max.ru",
+        "Pragma": "no-cache",
+        "Sec-Websocket-Extension": "permessage-deflate; client_max_window_bits",
+        "Sec-Websocket-Key": "MEBa2ZnucwlWNZrrLRbmIQ",
+        "Sec-Websocket-Version": "13",
+        "Upgrade": "websocket",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+    },
+    "max_agent": {
+        "appVersion": "25.12.13",
+        "deviceLocale": "en",
+        "deviceName": "Chrome",
+        "deviceType": "WEB",
+        "locale": "ru",
+        "osVersion": "Linux",
+        "screen": "1080x1920 1.0x",
+        "timezone": "Europe/Saints-Petersburg"
+    }
+}

@@ -2,16 +2,17 @@ use std::{collections::HashMap, io::Error};
 
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::{ http::{Request, Response}, protocol::Message }};
-use futures_util::{StreamExt, sink::SinkExt};
+use futures_util::{StreamExt, sink::SinkExt, stream::{SplitSink, SplitStream}};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct UserAgent {
     pub app_version: String,
     pub device_locale: String,
     pub device_name: String,
     pub device_type: String,
-    pub header_user_agent: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub header_user_agent: Option<String>,
     pub locale: String,
     pub os_version: String,
     pub screen: String,
@@ -179,15 +180,6 @@ impl Default for Data {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct RequestState {
-    cmd: i8,
-    opcode:i64,
-    seq: i8,
-    ver: i8,
-    pub payload: Option<Data>
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ResponseState {
     cmd: i8,
@@ -205,51 +197,61 @@ pub struct ResponseHeaders {
     ver: i8
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RequestState {
+    cmd: i8,
+    opcode:i64,
+    seq: i8,
+    ver: i8,
+    pub payload: Option<Data>
+}
+
 impl RequestState {
-    pub fn new(opcode: i64) -> Self {
+    pub fn new() -> Self {
         Self {
             cmd: 0,
             ver: 11,
-            opcode,
+            opcode: 0,
             seq: 0,
             payload: None
         }
     }
 
-    pub fn increase_seq(mut self) -> Self {
-        self.seq += 1;
-
-        self
+    pub fn set_opcode(&mut self, opcode: i64) {
+        self.opcode = opcode;
     }
 
-    pub fn set_opcode(mut self, new_opcode: i64) -> Self {
-        self.opcode = new_opcode;
-
-        self
+    pub fn increase_seq(&mut self) {
+        self.seq += 1;
     }
 }
 
 pub struct Provider {
-    stream: WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>,
+    read: SplitStream<WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>>,
+    write: SplitSink<WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>, Message>,
     response: Response<Option<Vec<u8>>>,
     state: RequestState,
     full_data: Option<ResponseState>
 }
 
 impl Provider {
-    pub async fn new(headers: HashMap<&str, &str>, uri: String) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new(headers: String, uri: String) -> Result<Self, Box<dyn std::error::Error>> {
         let mut request = Request::builder();
+        let map: HashMap<&str, &str> = serde_json::from_str(&headers)?;
         request = request.uri(uri);
-        for (k,v) in headers {
+        for (k,v) in map {
             request = request.header(k, v);
         }
 
         let (stream, response) = connect_async(request.body(())?).await?;
 
-        let state = RequestState::new(6);
+        let (write, read) = stream.split();
+
+        let state = RequestState::new();
 
         Ok(Self {
-            stream,
+            read,
+            write,
             response,
             state,
             full_data: None
@@ -257,29 +259,29 @@ impl Provider {
     }
 
     pub async fn send_data(mut self, data: Data, opcode: i64) -> Result<Self, Box<dyn std::error::Error>> {
-        self.state.opcode = opcode;
-        let mut state = self.state.clone();
-        state.payload = Some(data);
-        let raw_data = serde_json::to_string(&state)?;
+        self.state.set_opcode(opcode);
+        let mut state_copy = self.state.clone();
+        state_copy.payload = Some(data);
+        let raw_data = serde_json::to_string(&state_copy)?;
         println!("Data to send: {}", raw_data);
-        self.stream.send(Message::Text(raw_data)).await?;
+        self.write.send(Message::Text(raw_data)).await?;
 
         println!("Response: {:#?}", self.response);
 
-        self.state.seq += 1;
+        self.state.increase_seq();
 
         Ok(self)
     }
 
     pub async fn handle_messages(&mut self) -> Result<(), Error> {
         loop {
-            match self.stream.next().await {
+            match self.read.next().await {
                 Some(Ok(Message::Text(text))) => {
                     println!("Received: {}", text);
                     let headers: ResponseHeaders = serde_json::from_str(&text).unwrap();
                     if headers.opcode == 19 {
                         let response: ResponseState = serde_json::from_str(&text).unwrap();
-                        self.full_data = Some(response);
+                        self.full_data = Some(response.clone());
                         println!("{:#?}", response);
                     }
                 },
