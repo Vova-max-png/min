@@ -258,7 +258,7 @@ impl Provider {
         })
     }
 
-    pub async fn send_data(mut self, data: Data, opcode: i64) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn send_data(&mut self, data: Data, opcode: i64) -> Result<&Self, Box<dyn std::error::Error>> {
         self.state.set_opcode(opcode);
         let mut state_copy = self.state.clone();
         state_copy.payload = Some(data);

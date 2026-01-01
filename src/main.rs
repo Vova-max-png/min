@@ -1,10 +1,13 @@
 use dotenvy::dotenv;
 use std::env;
 
-mod provider;
+use tokio::sync::Mutex;
+use std::sync::Arc;
+
+mod max_provider;
 mod config;
 use config::*;
-use provider::{ Provider, Data };
+use max_provider::{ Provider as MaxProvider, Data };
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let token = env::var("TOKEN").expect("Token is required in .env file!");
 
-    let provider = Provider::new(serde_json::to_string(&config.headers)?, "wss://ws-api.oneme.ru/websocket".to_string()).await?;
+    let provider = Arc::new(Mutex::new(MaxProvider::new(serde_json::to_string(&config.headers)?, "wss://ws-api.oneme.ru/websocket".to_string()).await?));
 
     let user_agent_data = Data {
         device_id: Some("13977301-4cfd-4cb4-98b6-3536e0744015".to_string()),
@@ -33,13 +36,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
+    let max_provider_clone = Arc::clone(&provider);
     let handle = tokio::spawn(async move {
-        provider.send_data(user_agent_data, 6).await.unwrap().send_data(auth_data, 19).await.unwrap().handle_messages().await.unwrap();  
+        let mut guard = max_provider_clone.lock().await;
+        guard.send_data(user_agent_data, 6).await.unwrap();
+        guard.send_data(auth_data, 19).await.unwrap();
+        guard.handle_messages().await.unwrap();
     });
 
-    // provider.send_data(Data {
-    //     ..Default::default()
-    // }, 17);
+    provider.lock().await.send_data(Data {
+        ..Default::default()
+    }, 17).await?;
 
     for i in 0..=10 {
         println!("Hello world {}!", i);

@@ -4,7 +4,7 @@ use std::fs;
 
 use serde::{Deserialize, Serialize};
 
-use crate::provider::UserAgent;
+use crate::max_provider::UserAgent;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserAuthAgent {
