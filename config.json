@@ -13,7 +13,7 @@
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
     },
     "max_agent": {
-        "appVersion": "25.12.13",
+        "appVersion": "25.12.14",
         "deviceLocale": "en",
         "deviceName": "Chrome",
         "deviceType": "WEB",

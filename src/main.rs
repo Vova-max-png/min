@@ -1,26 +1,28 @@
 use dotenvy::dotenv;
+use min_rs_config::ConfigParser;
 use std::env;
+use uuid::Uuid;
 
-use tokio::sync::Mutex;
 use std::sync::Arc;
+use tokio::sync::{Mutex, mpsc};
 
-mod max_provider;
-mod config;
-use config::*;
-use max_provider::{ Provider as MaxProvider, Data };
+mod telegram_provider;
+use min_rs::provider::{Data, Provider as MaxProvider};
+use telegram_provider::*;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     dotenv().ok();
 
     let config = ConfigParser::parse_config_file("config.json")?;
 
     let token = env::var("TOKEN").expect("Token is required in .env file!");
 
-    let provider = Arc::new(Mutex::new(MaxProvider::new(serde_json::to_string(&config.headers)?, "wss://ws-api.oneme.ru/websocket".to_string()).await?));
+    let (tx, mut rx) = mpsc::channel::<String>(1024);
 
     let user_agent_data = Data {
-        device_id: Some("13977301-4cfd-4cb4-98b6-3536e0744015".to_string()),
+        // device_id: Some("13977301-4cfd-4cb4-98b6-3536e0744015".to_string()),
+        device_id: Some(Uuid::new_v4().to_string()),
         user_agent: Some(config.max_agent),
         ..Default::default()
     };
@@ -36,24 +38,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
-    let max_provider_clone = Arc::clone(&provider);
+    let mut provider =
+        MaxProvider::new(
+            serde_json::to_string(&config.headers)?,
+            "wss://ws-api.oneme.ru/websocket".to_string(),
+            tx,
+            user_agent_data,
+            auth_data,
+        )
+        .await?;
+
+    let new_data = Data {
+        backward: Some(30),
+        chat_id: Some(114034918),
+        forward: Some(0),
+        from: Some(1766430956433),
+        get_messages: Some(true),
+        ..Default::default()
+    };
+
+    // let max_provider_clone = Arc::clone(&provider);
     let handle = tokio::spawn(async move {
-        let mut guard = max_provider_clone.lock().await;
-        guard.send_data(user_agent_data, 6).await.unwrap();
-        guard.send_data(auth_data, 19).await.unwrap();
-        guard.handle_messages().await.unwrap();
+        provider.auth().await.unwrap();
+
+        // provider.send_data(new_data, 49).await.unwrap();
+
+        provider.handle_everything().await.unwrap();
     });
 
-    provider.lock().await.send_data(Data {
-        ..Default::default()
-    }, 17).await?;
-
-    for i in 0..=10 {
-        println!("Hello world {}!", i);
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-    }
+    let telegram_provider = Arc::new(Mutex::new(TelegramProvider::new()?));
+    let telegram_bridge_clone = Arc::clone(&telegram_provider);
+    let telegram_bridge_handle = tokio::spawn(async move {
+        println!("Waiting for messages");
+        while let Some(data) = rx.recv().await {
+            match telegram_bridge_clone
+                .lock()
+                .await
+                .send_message("1021952704".to_string(), data.to_string())
+                .await
+            {
+                Ok(_) => {/*println!("Message has been sent to telegram")*/},
+                Err(e) => println!("Error sending message to telegram: {}", e),
+            };
+        }
+    });
+    let telegram_provider_clone = Arc::clone(&telegram_provider);
+    telegram_provider_clone.lock().await.handle_messages().await;
+    println!(
+        "{:#?}",
+        telegram_provider.lock().await.get_my_username().await?
+    );
 
     handle.await?;
+    // inters_handle.await?;
+    telegram_bridge_handle.await?;
 
     Ok(())
 }

@@ -10,3 +10,12 @@ tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
 dotenvy = "0.15.7"
+teloxide = "0.17.0"
+min-rs = "0.1.2"
+min-rs-config = "0.1.0"
+
+[dependencies.uuid]
+version = "1.19.0"
+features = [
+    "v4",
+]
