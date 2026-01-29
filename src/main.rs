@@ -10,8 +10,18 @@ mod telegram_provider;
 use min_rs::provider::{Data, Provider as MaxProvider};
 use telegram_provider::*;
 
+use crate::update::{UpdateConfig, Updater};
+
+mod update;
+
+pub type AsyncError = dyn std::error::Error + Send + Sync;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    tokio::task::spawn_blocking(|| {
+        Updater::new(UpdateConfig::AutoUpdate).update()
+    }).await??;
+
     dotenv().ok();
 
     let config = ConfigParser::parse_config_file("config.json")?;

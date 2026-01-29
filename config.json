@@ -21,5 +21,8 @@
         "osVersion": "Linux",
         "screen": "1080x1920 1.0x",
         "timezone": "Europe/Saints-Petersburg"
+    },
+    "updates": {
+        "autoUpdate": false
     }
 }
