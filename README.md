@@ -9,22 +9,25 @@
 ## Installation:
 
 * ## Install and configure min
-    1. ### Click releases button and download the latest available version
+    1. ### Open [releases](https://github.com/Vova-max-png/min/releases) and download the latest available version
     2. ### After it extract the downloaded .zip file somewhere(it's preferred to do so in any folder, not on your desktop)
-    3. ### [Install special extension](https://github.com/Vova-max-png/maxogrambext) to retrieve your max's token, just download the source code and import it in your browser. Example for google chrome and some other browser: go to chrome://extensions -> enable developer mode in the right top corner -> press "load unpacked extension" button in the left top corner. Choose the folder you've just downloaded.
-    4. ### Open [max](https://wem.max.ru) and log in there using your phone(yes, it's required just once, then you can delete the app) and open extension(extension should be opened with max page opened too). Wait until status is active and press start button. After pressing it press copy to clipboard button. 
+    3. ### [Install special extension](https://github.com/Vova-max-png/maxogrambext) to retrieve your max's token, just download the source code and import it in your browser(Warning: now it only works in chrome and firefox browser, tested). Example for google chrome and some other browser: go to chrome://extensions -> enable developer mode in the right top corner -> press "load unpacked extension" button in the left top corner. Choose the folder you've just downloaded.
+    4. ### Open [max](https://wem.max.ru) and log in there using your phone(yes, it's required just once, then you can delete the app) and open the extension(extension should be opened with max page opened too). Wait until status is active and press start button. After pressing it press "copy to clipboard" button. 
     5. ### Return to min you've just downloaded from this page and paste this to you .env file:
     ```makefile
     TOKEN="<Your max token, that you've just copied>"
     T_TOKEN="<Your telegram token, we will paste it later>"
+    T_ID="<We will do it later too>"
     ```
-    6. ### After doing it create telegram bot using [Botfather](https://telegram.me/BotFather), choose the appropriate name for it, if you want you can choose an icon for it. Then get it's token.
+    6. ### After doing it create telegram bot using [Botfather](https://telegram.me/BotFather), choose the appropriate name for it, if you want you can choose an icon too. Then get it's token.
     7. ### Paste in in your .env file 
     ```makefile
     TOKEN="Some token you have already placed here"
     T_TOKEN="<Your telegram bot's token>"
+    T_ID="<See next steps>"
     ```
     8. ### Run the .exe file you've downloaded from this page. If there are any troubles try changing appVersion field in config.json and increase the last number in the version by one
+    9. ### Send anything to your bot and you will get your telegram id. Paste it to .env file in T_ID variable. Restart the app.
 
 * ## This is pre-alpha version. Don't rely on it, there could be and will be many bugs/vulnerabilities during all the pre-alpha and beta tests. You use it "as-is", I can't guarantee anything.
 

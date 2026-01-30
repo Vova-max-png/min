@@ -13,16 +13,16 @@
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
     },
     "max_agent": {
-        "appVersion": "25.12.14",
+        "appVersion": "26.1.4",
         "deviceLocale": "en",
         "deviceName": "Chrome",
         "deviceType": "WEB",
         "locale": "ru",
-        "osVersion": "Linux",
+        "osVersion": "Windows",
         "screen": "1080x1920 1.0x",
-        "timezone": "Europe/Saints-Petersburg"
+        "timezone": "Europe/Moscow"
     },
-    "updates": {
-        "autoUpdate": false
+    "config": {
+        "autoUpdate": true
     }
 }

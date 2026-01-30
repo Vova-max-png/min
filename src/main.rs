@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
 use min_rs_config::ConfigParser;
-use std::env;
+use std::{env, process::exit};
 use uuid::Uuid;
 
 use std::sync::Arc;
@@ -18,13 +18,16 @@ pub type AsyncError = dyn std::error::Error + Send + Sync;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    tokio::task::spawn_blocking(|| {
-        Updater::new(UpdateConfig::AutoUpdate).update()
-    }).await??;
+    let config = ConfigParser::parse_config_file("config.json")?;
+
+    println!("{}", config.should_update()?);
+    if config.should_update()? {
+        tokio::task::spawn_blocking(|| {
+            Updater::new(UpdateConfig::AutoUpdate).update()
+        }).await??;
+    }
 
     dotenv().ok();
-
-    let config = ConfigParser::parse_config_file("config.json")?;
 
     let token = env::var("TOKEN").expect("Token is required in .env file!");
 
@@ -84,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             match telegram_bridge_clone
                 .lock()
                 .await
-                .send_message("1021952704".to_string(), data.to_string())
+                .send_message(env::var("T_ID").expect("Your telegram id is required in .env file!").to_string(), data.to_string())
                 .await
             {
                 Ok(_) => {/*println!("Message has been sent to telegram")*/},

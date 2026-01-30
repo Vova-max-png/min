@@ -5,7 +5,7 @@ use std::env;
 
 async fn process_text_message(bot: Bot, user: User, message_text: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Answering to user {}: {}", user.id, message_text);
-    bot.send_message(user.id, format!("Hi! You sent: {message_text}")).await?;
+    bot.send_message(user.id, format!("Hi! Your telegram id is: {}", user.id)).await?;
     Ok(())
 }
 
