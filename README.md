@@ -20,7 +20,7 @@
     T_ID="<We will do it later too>"
     ```
     6. ### After doing it create telegram bot using [Botfather](https://telegram.me/BotFather), choose the appropriate name for it, if you want you can choose an icon too. Then get it's token.
-    7. ### Paste in in your .env file 
+    7. ### Paste it in your .env file 
     ```makefile
     TOKEN="Some token you have already placed here"
     T_TOKEN="<Your telegram bot's token>"

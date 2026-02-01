@@ -20,9 +20,7 @@ impl Updater {
             .unwrap()
             .fetch()
             .unwrap();
-        println!("Releases: {:#?}", releases);
         if releases.is_empty() {
-            println!("No releases found!");
             return Ok(());
         }
 

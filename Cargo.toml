@@ -11,8 +11,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
 dotenvy = "0.15.7"
 teloxide = "0.17.0"
-min-rs = "0.1.3"
-min-rs-config = "0.1.1"
+min-rs = "0.1.4"
+min-rs-config = "0.1.3"
 self_update = { version = "0.42.0", features = ["archive-tar", "archive-zip", "compression-flate2", "compression-zip-deflate", "signatures"] }
 reqwest = "0.13.1"
 tempfile = "3.24.0"

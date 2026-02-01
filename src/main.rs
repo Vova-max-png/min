@@ -18,19 +18,24 @@ pub type AsyncError = dyn std::error::Error + Send + Sync;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!("Reading config file...");
     let config = ConfigParser::parse_config_file("config.json")?;
+    println!("Config file has just been parsed.");
 
-    println!("{}", config.should_update()?);
     if config.should_update()? {
         tokio::task::spawn_blocking(|| {
             Updater::new(UpdateConfig::AutoUpdate).update()
         }).await??;
+    } else {
+        println!("Auth update feature is turned off. If you want to download updates automatically enable it in config.json file.")
     }
 
     dotenv().ok();
 
     let token = env::var("TOKEN").expect("Token is required in .env file!");
+    println!("Max token parsed: {}", token);
 
+    println!("Initializing channels, auth structs...");
     let (tx, mut rx) = mpsc::channel::<String>(1024);
 
     let user_agent_data = Data {
@@ -51,6 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         ..Default::default()
     };
 
+    println!("Initializing provider...");
     let mut provider =
         MaxProvider::new(
             serde_json::to_string(&config.headers)?,
@@ -59,17 +65,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             user_agent_data,
             auth_data,
         )
-        .await?;
+        .await?
+        .attach_handler(|response| {
+            println!("{}", response.payload.message.unwrap().text);
+        });
+    println!("Provider initialized successfully!");
 
-    let new_data = Data {
-        backward: Some(30),
-        chat_id: Some(114034918),
-        forward: Some(0),
-        from: Some(1766430956433),
-        get_messages: Some(true),
-        ..Default::default()
-    };
-
+    // let new_data = Data {
+    //     backward: Some(30),
+    //     chat_id: Some(114034918),
+    //     forward: Some(0),
+    //     from: Some(1766430956433),
+    //     get_messages: Some(true),
+    //     ..Default::default()
+    // };
+    
+    println!("Starting bridge...");
     // let max_provider_clone = Arc::clone(&provider);
     let handle = tokio::spawn(async move {
         provider.auth().await.unwrap();
@@ -97,11 +108,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
     let telegram_provider_clone = Arc::clone(&telegram_provider);
     telegram_provider_clone.lock().await.handle_messages().await;
-    println!(
-        "{:#?}",
-        telegram_provider.lock().await.get_my_username().await?
-    );
+    // println!(
+    //     "{:#?}",
+    //     telegram_provider.lock().await.get_my_username().await?
+    // );
 
+    println!("Bridge has started!");
     handle.await?;
     // inters_handle.await?;
     telegram_bridge_handle.await?;
