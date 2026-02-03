@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
 use min_rs_config::ConfigParser;
-use std::{env, process::exit};
+use std::env;
 use uuid::Uuid;
 
 use std::sync::Arc;
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             Updater::new(UpdateConfig::AutoUpdate).update()
         }).await??;
     } else {
-        println!("Auth update feature is turned off. If you want to download updates automatically enable it in config.json file.")
+        println!("Auto update feature is turned off. If you want to download updates automatically enable it in config.json file.")
     }
 
     dotenv().ok();
@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )
         .await?
         .attach_handler(|response| {
-            println!("{}", response.payload.message.unwrap().text);
+            println!("\n\n{}", response.payload.message.unwrap().text);
         });
     println!("Provider initialized successfully!");
 
