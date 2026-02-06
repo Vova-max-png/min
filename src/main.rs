@@ -16,16 +16,48 @@ mod update;
 
 pub type AsyncError = dyn std::error::Error + Send + Sync;
 
+async fn check_response_field<F>(
+    field: Option<F>,
+    field_name: String,
+) -> Result<F, Box<AsyncError>> {
+    match field {
+        Some(f) => Ok(f),
+        None => {
+            #[cfg(debug_assertions)]
+            println!("One of payload fields is empty");
+            Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Field '{}' is required", field_name),
+            )))
+        }
+    }
+}
+
+async fn update(config: UpdateConfig) -> Result<(), Box<AsyncError>> {
+    println!("Updating...");
+    tokio::task::spawn_blocking(|| {
+        Updater::new(config).update()
+    }).await??;
+
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> Result<(), Box<AsyncError>> {
     println!("Reading config file...");
-    let config = ConfigParser::parse_config_file("config.json")?;
+    let config: ConfigParser;
+    match ConfigParser::parse_config_file("config.json") {
+        Ok(c) => config = c,
+        Err(e) => {
+            println!("Couldn't read config file, updating...");
+            update(UpdateConfig::AutoUpdate).await.unwrap();
+            return Ok(())
+        }
+    };
     println!("Config file has just been parsed.");
 
-    if config.should_update()? {
-        tokio::task::spawn_blocking(|| {
-            Updater::new(UpdateConfig::AutoUpdate).update()
-        }).await??;
+    if config.should_update().unwrap() {
+        update(UpdateConfig::AutoUpdate).await?;
     } else {
         println!("Auto update feature is turned off. If you want to download updates automatically enable it in config.json file.")
     }
@@ -61,13 +93,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         MaxProvider::new(
             serde_json::to_string(&config.headers)?,
             "wss://ws-api.oneme.ru/websocket".to_string(),
-            tx,
             user_agent_data,
             auth_data,
         )
         .await?
-        .attach_handler(|response| {
-            println!("\n\n{}", response.payload.message.unwrap().text);
+        .attach_handler({
+            let tx = tx.clone();
+            move |response| {
+                let tx = tx.clone();
+                async move {
+                    let message = match check_response_field(response.payload.message, "message".to_string()).await {
+                        Ok(msg) => msg,
+                        Err(e) => {
+                            #[cfg(debug_assertions)]
+                            println!("Message received in handler is None: {:#?}", e);
+                            return;
+                        }
+                    };
+                    let sender_name = match check_response_field(message.sender_name.clone(), "sender_name".to_string()).await {
+                        Ok(snd) => snd,
+                        Err(e) => {
+                            #[cfg(debug_assertions)]
+                            println!("Sender name from response is None: {:#?}\nSender name: {:#?}", e, message.sender_name.unwrap());
+                            return;
+                        }
+                    };
+                    let tg_text = format!("{}\n\n{}", sender_name, message.text);
+
+                    tx.send(tg_text).await.unwrap();
+
+                    println!("\n\n{}", message.text);
+                }
+            }
         });
     println!("Provider initialized successfully!");
 
@@ -108,14 +165,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
     let telegram_provider_clone = Arc::clone(&telegram_provider);
     telegram_provider_clone.lock().await.handle_messages().await;
-    // println!(
-    //     "{:#?}",
-    //     telegram_provider.lock().await.get_my_username().await?
-    // );
 
     println!("Bridge has started!");
     handle.await?;
-    // inters_handle.await?;
     telegram_bridge_handle.await?;
 
     Ok(())
